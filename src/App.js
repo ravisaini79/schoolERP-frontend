@@ -8,6 +8,7 @@ import { selectUser } from "./store/slices/userSlice";
 import { SignedOutRoutes, SignedInRoutes } from "./ProtectedRoutes";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import PrepareBill from "./AdminComponents/finance/PrepareBill";
 
 const TheLayout = React.lazy(() => import("./layouts/index"));
 
@@ -64,6 +65,8 @@ function App() {
             name="Page 500"
             render={(props) => <Page500 {...props} />}
           />
+          <Route path="/billss" exact element={<PrepareBill />} />
+
           <Route
             path="*"
             exact={true}

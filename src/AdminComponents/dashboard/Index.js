@@ -42,24 +42,25 @@ function Index() {
       <>
         {/* cards */}
         <Cards counts={count} />
+        <div className="col-xs-12 col-sm-12 col-md-12  mb-5">
+            <AcademicYear isEdit={true} />
+          </div>
         <div className="row mb-5">
-          <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
+        <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
+          <SchoolCalender events={events} user={user.role} />
+        </div>
+
+        <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
+          <NoticeBoard isDashboard={true} user={user.role} />
+        </div>
+          {/* <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
             <Attendance />
           </div>
           <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
             <RecentActivities />
-          </div>
-          <div className="col-xs-12 col-sm-12 col-md-8  mb-5">
-            <SchoolCalender events={events} user={user.role} />
-          </div>
+          </div> */}
 
-          <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
-            <NoticeBoard isDashboard={true} user={user.role} />
-          </div>
-
-          <div className="col-xs-12 col-sm-12 col-md-6  mb-5">
-            <AcademicYear isEdit={true} />
-          </div>
+         
           {show && (
             <>
               <div className="col-xs-12 col-sm-12 col-md-6  mb-5">

@@ -14,11 +14,13 @@ import {
 } from "@coreui/react";
 import CIcon from "@coreui/icons-react";
 import logo from "../../assets/icons/logo.png";
+import icon from "../../assets/icons/schhol-logo.png";
 import axios from "./../../store/axios";
 import { useForm } from "react-hook-form";
 import { errorAlert } from "../../utils";
 import { Link } from "react-router-dom";
 import { handleLogin } from "../../store/apiCall";
+import { FaSchool } from "react-icons/fa";
 
 const Login = ({ history }) => {
   const [userId, setuserId] = useState("");
@@ -149,12 +151,12 @@ const Login = ({ history }) => {
               >
                 <CCardBody className="text-center">
                   <div>
-                    <img src={logo} alt="logo" />
-                    <h2>Welcome Back</h2>
+                  <FaSchool style={{ fontSize: "80px", color: "white" }} />{" "}
+                    {/* School icon added */}
+                    <h2>Welcome Back!</h2>
                     <p>
-                      Lorem ipsum dolor sit amet, consectetur adipisicing elit,
-                      sed do eiusmod tempor incididunt ut labore et dolore magna
-                      aliqua.
+                      Login to your account to access your dashboard, manage
+                      tasks, and stay connected with your school community.
                     </p>
                   </div>
                 </CCardBody>

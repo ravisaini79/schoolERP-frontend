@@ -253,6 +253,11 @@ const _nav = [
       },
       {
         _tag: "CSidebarNavItem",
+        name: "Generate Bill",
+        to: "/finance/generatebill",
+      },
+      {
+        _tag: "CSidebarNavItem",
         name: "Students Fees",
         to: "/finance/students",
       },

@@ -6,7 +6,7 @@ import { selectClasses } from "../../store/slices/schoolSlice";
 import axios from "../../store/axios";
 import { Link, useHistory } from "react-router-dom";
 import { errorAlert, currentCurrency } from "../../utils";
-
+import SearchStudent from "./billPayment/SearchStudent";
 const tableHeader = [
   { id: "date", name: "Date" },
   { id: "userID", name: "Student ID" },

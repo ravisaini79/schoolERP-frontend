@@ -7,8 +7,7 @@ const TheFooter = () => {
   return (
     <CFooter fixed={false}>
       <p className="text-center  w-100 mt-3">
-        © 2015 - {year.getFullYear()} Darrel Technologies Limited. All Rights
-        Reserved.
+        © {year.getFullYear()} ISchool | All Rights Reserved. Website Designed & Developed By Green Wheels
       </p>
     </CFooter>
   );

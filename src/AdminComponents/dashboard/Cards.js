@@ -44,7 +44,7 @@ function Cards({ counts }) {
         message="Registered Classes"
         link="/academics/classes"
       />
-      <Card
+      {/* <Card
         icon={<BrandingWatermarkIcon />}
         value={divisions}
         title="Divisions"
@@ -64,7 +64,7 @@ function Cards({ counts }) {
         title="Courses"
         message="Registered"
         link="/academics/courses"
-      />
+      /> */}
     </div>
   );
 }

@@ -26,7 +26,7 @@ function SearchStudent({
       <h3>Search Student</h3>
       <form action="">
         <div className="mb-3">
-          <label className="form-label">Year</label>
+          <label className="form-label">Academic Year</label>
           <select
             value={year}
             onChange={(e) => setyear(e.target.value)}

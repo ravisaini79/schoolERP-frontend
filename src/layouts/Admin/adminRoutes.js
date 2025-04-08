@@ -192,6 +192,11 @@ const SetFees = React.lazy(() =>
 const PrepareBill = React.lazy(() =>
   import("../../AdminComponents/finance/PrepareBill")
 );
+
+const Generatebill = React.lazy(() =>
+  import("../../AdminComponents/finance/Generatebill")
+);
+
 const RecordExpenditure = React.lazy(() =>
   import("../../AdminComponents/finance/expenditure/RecordExpenditure")
 );
@@ -869,6 +874,12 @@ const routes = [
     name: "Students Fees",
     exact: true,
     component: PrepareBill,
+  },
+  {
+    path: "/finance/generatebill",
+    name: "Students Fees",
+    exact: true,
+    component: Generatebill,
   },
   {
     path: "/finance/salarydeductions",

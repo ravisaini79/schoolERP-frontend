@@ -29,7 +29,7 @@ function AllStudents() {
   const [students, setstudents] = useState([]);
   const classes = useSelector(selectClasses);
   const [storeData, setstoreData] = useState([]);
-
+const [loggedInUser, setLoggedInUser] = useState("");
   const classesOptions = classes.map((e) => {
     return {
       name: e.name,
@@ -38,7 +38,14 @@ function AllStudents() {
   });
 
   useEffect(() => {
-    axios.get("/students/withdraw").then((res) => {
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+    if (user && user.userID) {
+      // console.log("✅ Logged in user:", user);
+      setLoggedInUser(user)
+    } else {
+      console.log("❌ No user found in localStorage");
+    }
+    axios.get(`/students/withdraw/${user?._id}`).then((res) => {
       console.log(res.data);
       setstudents(res.data);
       setstoreData(res.data);

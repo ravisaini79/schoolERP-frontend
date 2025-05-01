@@ -48,8 +48,20 @@ export default function CustomizedDialogs({
     setOpen(false);
   };
 
+   const [loggedInUser, setLoggedInUser] = useState("");
+
+
   useEffect(() => {
-    axios.get("/students").then((res) => {
+    // setloading(true);
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+    
+    if (user && user.userID) {
+      // console.log("✅ Logged in user:", user);
+      setLoggedInUser(user)
+    } else {
+      console.log("❌ No user found in localStorage");
+    }
+    axios.get(`/students/getAll/${user._id}`).then((res) => {
       setstudents(res.data);
     });
   }, []);

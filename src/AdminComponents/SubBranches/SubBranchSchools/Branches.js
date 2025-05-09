@@ -44,7 +44,6 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
   },
-
 }));
 
 const initialForm = {
@@ -55,7 +54,7 @@ const initialForm = {
   address: "",
   role: "admin",
   logo: "",
-  user_Id:"",
+  user_Id: localStorage._id,
 };
 
 function AdminList() {
@@ -86,20 +85,24 @@ function AdminList() {
     setloading(true);
     const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
 
-    if (user && user.userID) {
+    if (user) {
       // console.log("✅ Logged in user:", user);
       setLoggedInUser(user);
+      getAllSchools();
     } else {
       console.log("❌ No user found in localStorage");
     }
-    getAllSchools();
   }, []);
 
   const getAllSchools = () => {
-    axios.get(`/getAlladmin`).then((res) => {
-      setloading(false);
-      setSchools(res.data);
-    });
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+    if (user && user._id) {
+      axios.get(`/subbranches/sub/${user._id}`).then((res) => {
+        console.log("📦 API response data:", res.data);
+        // setloading(false);
+        setSchools(res.data);
+      });
+    }
   };
 
   const handleOpenDialog = (mode, school = initialForm) => {
@@ -120,14 +123,14 @@ function AdminList() {
   const handleSubmit = async () => {
     setloading(true);
     const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
-  
+
     try {
       if (dialogMode === "add") {
         const payload = {
           ...form,
           user_Id: user._id, // safely add user_Id to the form payload
         };
-  
+
         const res = await axios.post(`/school/create`, payload);
         setSchools((prev) => [...prev, res.data]);
         getAllSchools();
@@ -146,7 +149,6 @@ function AdminList() {
       handleCloseDialog();
     }
   };
-  
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure to delete this school?")) {
@@ -180,62 +182,71 @@ function AdminList() {
               classes={classes}
               headCells={headCells}
               numSelected={selected.length}
-              
             />
             <TableBody>
-              {schools
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row, index) => (
-                  <TableRow hover key={row._id}>
-                    <TableCell>{index + 1}</TableCell>
-                    <TableCell className={classes.logoCell}>
-                      <Avatar
-                        src={row.logo}
-                        alt={row.name}
-                        className={classes.avatar}
-                      />
-                    </TableCell>
-                    <TableCell>{row.fullName}</TableCell>
-                    {/* <TableCell>{row.name}</TableCell> */}
-                    <TableCell>{row.email}</TableCell>
-                    <TableCell>{row.telephone}</TableCell>
-                    <TableCell>{row.address}</TableCell>
-                    <TableCell>{row.role}</TableCell>
-                    <TableCell className="d-flex">
-                      <Tooltip title="View">
-                        <IconButton
-                          onClick={() => handleOpenDialog("view", row)}
-                        >
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton
-                          color="primary"
-                          onClick={() => handleOpenDialog("edit", row)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          color="secondary"
-                          onClick={() => handleDelete(row._id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
+              {schools &&
+                schools
+                  ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((row, index) => (
+                    <TableRow hover key={row._id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell className={classes.logoCell}>
+                        <Avatar
+                          src={row.logo}
+                          alt={row.name}
+                          className={classes.avatar}
+                        />
+                      </TableCell>
+                      <TableCell>{row.fullName}</TableCell>
+                      {/* <TableCell>{row.name}</TableCell> */}
+                      <TableCell>{row.email}</TableCell>
+                      <TableCell>{row.telephone}</TableCell>
+                      <TableCell>{row.address}</TableCell>
+                      <TableCell>{row.role}</TableCell>
+                      <TableCell className="d-flex">
+                        <Tooltip title="View">
+                          <IconButton
+                            onClick={() => handleOpenDialog("view", row)}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleOpenDialog("edit", row)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            color="secondary"
+                            onClick={() => handleDelete(row._id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+
+                        <Tooltip title="Login">
+                          <IconButton>
+                            <i className="fa fa-sign-in"></i>
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
             </TableBody>
+            <span style={{ textAlign: "center" }}>
+              {schools.length <= 0 ? <h5>School Not Found</h5> : <></>}
+            </span>
           </Table>
         </TableContainer>
 
         <TablePagination
           component="div"
           rowsPerPageOptions={[5, 10, 25]}
-          count={schools.length}
+          count={schools?.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}

@@ -14,6 +14,15 @@ const Notifications = React.lazy(() =>
   import("../../AdminComponents/notifications/NotificationsPage")
 );
 
+const Subbranches = React.lazy(() =>
+  import("../../AdminComponents/SubBranches/SubBranchSchools/Branches")
+);
+
+const Subjects = React.lazy(() =>
+  import("../../AdminComponents/academics/Subjects/Subjects")
+);
+
+
 //message
 const Messages = React.lazy(() =>
   import("../../AdminComponents/messages/inbox/Messaging")
@@ -431,6 +440,16 @@ const ManageUsers = React.lazy(() =>
   import("../../AdminComponents/users/ManageUsers")
 );
 
+
+const AssignSubtoStudent = React.lazy(() =>
+  import("../../AdminComponents/academics/AssignSubtoStudents/SubtoStudents")
+);
+
+
+const SubjectsGroup = React.lazy(() =>
+  import("../../AdminComponents/academics/SubjectsGroup/SubjectsGroup")
+);
+
 const routes = [
   {
     path: "/",
@@ -439,10 +458,34 @@ const routes = [
     component: Dashboard,
   },
   {
+    path: "/academics/subjects",
+    name: "Subjects",
+    exact: true,
+    component: Subjects,
+  },
+  {
+    path: "/academics/subjectsgroup",
+    name: "Subjects Group",
+    exact: true,
+    component: SubjectsGroup,
+  },
+  {
+    path: "/academics/assignsubjects",
+    name: "Assign Subject to Students",
+    exact: true,
+    component: AssignSubtoStudent,
+  },
+  {
     path: "/reports",
     name: "Admin Profile",
     exact: true,
     component: Profile,
+  },
+  {
+    path: "/subbranches",
+    name: "Sub Branches",
+    exact: true,
+    component: Subbranches,
   },
   {
     path: "/reports/academic",

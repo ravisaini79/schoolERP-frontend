@@ -14,6 +14,15 @@ const _nav = [
     ),
   },
   {
+    _tag: "CSidebarNavItem",
+    name: "SubBranches",
+    to: "/subbranches",
+    icon: (
+      <CIcon name="cil-bell" customClasses="c-sidebar-nav-icon sidebarIcon" />
+    ),
+  },
+
+  {
     _tag: "CSidebarNavDropdown",
     name: "Students",
     route: "/students",
@@ -144,6 +153,21 @@ const _nav = [
         _tag: "CSidebarNavItem",
         name: "Classes",
         to: "/academics/classes",
+      },
+      {
+        _tag: "CSidebarNavItem",
+        name: "Subjects",
+        to: "/academics/subjects",
+      },
+      {
+        _tag: "CSidebarNavItem",
+        name: "Subjects Group",
+        to: "/academics/subjectsgroup",
+      },
+      {
+        _tag: "CSidebarNavItem",
+        name: "Assign Subject to Students",
+        to: "/academics/assignsubjects",
       },
       {
         _tag: "CSidebarNavItem",

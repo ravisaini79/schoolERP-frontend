@@ -44,9 +44,20 @@ function AllStudents() {
     };
   });
 
+    const [loggedInUser, setLoggedInUser] = useState("");
+
+
   useEffect(() => {
     setloading(true);
-    axios.get("/students").then((res) => {
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+    
+    if (user && user.userID) {
+      // console.log("✅ Logged in user:", user);
+      setLoggedInUser(user)
+    } else {
+      console.log("❌ No user found in localStorage");
+    }
+    axios.get(`/students/getAll/${user._id}`).then((res) => {
       setloading(false);
       setstudents(res.data);
       setstoreData(res.data);

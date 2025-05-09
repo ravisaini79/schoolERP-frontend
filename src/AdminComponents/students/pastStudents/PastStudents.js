@@ -40,7 +40,7 @@ function AllStudents() {
   const [classID, setclass] = useState("");
   const [selectedUser, setselectedUser] = useState({});
   const [editloading, seteditloading] = useState(false);
-
+  const [loggedInUser, setLoggedInUser] = useState("");
   const yearsOptions = years.map((e) => {
     return {
       name: e.year,
@@ -50,7 +50,15 @@ function AllStudents() {
 
   useEffect(() => {
     setloading(true);
-    axios.get("/students/past").then((res) => {
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+    
+    if (user && user.userID) {
+      // console.log("✅ Logged in user:", user);
+      setLoggedInUser(user)
+    } else {
+      console.log("❌ No user found in localStorage");
+    }
+    axios.get(`/students/past/${user?._id}`).then((res) => {
       setloading(false);
       console.log(res.data);
       setstudents(res.data);

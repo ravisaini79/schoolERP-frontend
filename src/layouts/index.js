@@ -10,6 +10,7 @@ import { selectUser } from "../store/slices/userSlice";
 import StudentRoutes from "./Student/studentRoutes";
 import TeacherRoutes from "./Teacher/teacherRoutes";
 import AdminRoutes from "./Admin/adminRoutes";
+import SuperAdminRoutes from "./SuperAdmin/superadminRoutes"
 import AccountantRoutes from "./Accountant/teacherRoutes";
 import StaffRoutes from "./Staff/teacherRoutes";
 import StudentNavs from "./Student/sidebarNavs";
@@ -17,6 +18,7 @@ import TeacherNavs from "./Teacher/sidebarNavs";
 import AdminNavs from "./Admin/sidebarNavs";
 import AccountantNavs from "./Accountant/sidebarNavs";
 import StaffNavs from "./Staff/sidebarNavs";
+import SuperAdmin from "./SuperAdmin/sidebarNavs"
 
 const TheLayout = () => {
   const user = useSelector(selectUser);
@@ -24,6 +26,8 @@ const TheLayout = () => {
   const getRoutes = () => {
     if (user) {
       switch (user.role) {
+        case "Superadmin":
+          return SuperAdminRoutes;
         case "student":
           return StudentRoutes;
         case "teacher":
@@ -41,6 +45,8 @@ const TheLayout = () => {
   const getNavs = () => {
     if (user) {
       switch (user.role) {
+        case "Superadmin":
+          return SuperAdmin;
         case "student":
           return StudentNavs;
         case "teacher":

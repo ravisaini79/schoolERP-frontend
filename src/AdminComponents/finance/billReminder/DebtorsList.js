@@ -28,8 +28,18 @@ function DebtorsList() {
   const [openLetter, setopenLetter] = useState(false);
   const [openMessage, setopenMessage] = useState(false);
   const [selected, setSelected] = useState([]);
+  const [loggedInUser, setLoggedInUser] = useState("");
 
   useEffect(() => {
+
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+    if (user && user.userID) {
+      // console.log("✅ Logged in user:", user);
+      setLoggedInUser(user)
+    } else {
+      console.log("❌ No user found in localStorage");
+    }
+
     axios.get("/fees").then((res) => {
       setfees(res.data);
     });
@@ -46,7 +56,7 @@ function DebtorsList() {
           )
         : 0;
     };
-    axios.get(`/students/unpaidfees/${year}/${term}`).then((res) => {
+    axios.get(`/students/unpaidfees/${loggedInUser._id}/${year}/${term}`).then((res) => {
       let students = res.data.map((e) => {
         let total = bal(e);
         return {

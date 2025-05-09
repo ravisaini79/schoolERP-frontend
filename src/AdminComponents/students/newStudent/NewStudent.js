@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PersonalInfo from "../../shared/Personalnfo";
 import Academics from "./AcademicsDetails";
 import ContactDetails from "../../shared/Contact";
@@ -24,6 +24,7 @@ function NewStudent() {
   const [allege, setallege] = useState("");
   const [disease, setdisease] = useState("");
   const [loading, setloading] = useState("");
+
 
   const [profileUrl, setprofileUrl] = useState("");
   const [profileimg, setprofileimg] = useState("");
@@ -57,6 +58,17 @@ function NewStudent() {
   const handleDeleteGuadian = (id) => {
     setguadian(guadian.filter((e) => e.id !== id));
   };
+  const [loggedInUser, setLoggedInUser] = useState("");
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+  
+    if (user && user.userID) {
+      // console.log("✅ Logged in user:", user);
+      setLoggedInUser(user)
+    } else {
+      console.log("❌ No user found in localStorage");
+    }
+  }, []);
 
   const handleChangeFile = (e) => {
     const selected = e.target.files[0];
@@ -148,6 +160,7 @@ function NewStudent() {
         postalAddress,
         physicalAddress: residence,
         guadian,
+        user_Id:loggedInUser?._id || userID,
       })
       .then(async (response) => {
         setloading(false);

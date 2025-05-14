@@ -35,7 +35,7 @@ function NewStudent() {
   //academics
   const [autoID, setautoID] = useState(true);
   const [userID, setuserID] = useState("");
-  const [classID, setclass] = useState("");
+  const [classID, setclass] = useState(null);
   const [section, setsection] = useState("");
   const [campus, setcampus] = useState("");
   const [status, setstatus] = useState(null);

@@ -70,7 +70,7 @@ const GroupManager = () => {
       if (editMode) {
         const res = await axios.put(`/subject-groups/update/${editingGroupId}`, payload);
         setGroups((prev) =>
-          prev.map((g) => (g._id === editingGroupId ? res.data : g))
+          prev?.map((g) => (g._id === editingGroupId ? res.data : g))
         );
         setEditMode(false);
         setEditingGroupId(null);
@@ -92,7 +92,7 @@ const GroupManager = () => {
     setGroupName(group.group_name);
     setDescription(group.description);
     setStatus(group.status);
-    setSelectedSubjects(group.subjectIds.map((s) => s._id));
+    setSelectedSubjects(group.subjectIds?.map((s) => s._id));
     setEditMode(true);
     setEditingGroupId(group._id);
   };
@@ -145,11 +145,11 @@ const GroupManager = () => {
             renderValue={(selected) =>
               subjects
                 .filter((subj) => selected.includes(subj._id))
-                .map((s) => s.subject_name)
+                ?.map((s) => s.subject_name)
                 .join(", ")
             }
           >
-            {subjects.map((subject) => (
+            {subjects?.map((subject) => (
               <MenuItem key={subject._id} value={subject._id}>
                 <Checkbox checked={selectedSubjects.includes(subject._id)} />
                 <span>{subject.subject_name}</span>
@@ -182,13 +182,13 @@ const GroupManager = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {groups.map((group) => (
+          {groups?.map((group) => (
             <TableRow key={group._id}>
               <TableCell>{group.group_name}</TableCell>
               <TableCell>{group.description}</TableCell>
               <TableCell>{group.status}</TableCell>
               <TableCell>
-                {group.subjectIds.map((s) =>
+                {group.subjectIds?.map((s) =>
                   typeof s === "object" ? s.subject_name : s
                 ).join(", ")}
               </TableCell>

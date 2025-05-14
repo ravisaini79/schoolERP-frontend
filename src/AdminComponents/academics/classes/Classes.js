@@ -35,10 +35,10 @@ function Classes() {
   const campuses = useSelector(selectCampuses);
   const history = useHistory();
   const dispatch = useDispatch();
-
+ const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
   useEffect(() => {
     setloading(true);
-    axios.get("/classes").then((res) => {
+   axios.get(`/classes/getby/${user._id}`).then((res) => {
       setloading(false);
       let data = res.data;
       let classesData = data.map((e) => {

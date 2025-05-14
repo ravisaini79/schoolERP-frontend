@@ -6,6 +6,7 @@ import { errorAlert, successAlert } from "../../../utils";
 //import GoBack from "../../shared/GoBack";
 import { useDispatch, useSelector } from "react-redux";
 import { selectClasses, setClasses } from "../../../store/slices/schoolSlice";
+import { useHistory } from 'react-router-dom';
 
 function AddClass() {
   const [name, setname] = useState("");
@@ -21,6 +22,8 @@ function AddClass() {
   const [prefect, setprefect] = useState("");
   const [sba, setsba] = useState(false);
   const [sbaStaff, setsbaStaff] = useState("");
+  const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
+  const navigate = useHistory()
 
   const handleAddClass = () => {
     setloading(true);
@@ -36,22 +39,27 @@ function AddClass() {
         sba,
         group,
         sbaStaff,
+        user_Id:user._id
       })
       .then(async (res) => {
         let { data } = res;
         setloading(false);
+
         if (data?.error) {
           errorAlert(data.error);
           return 0;
         }
         successAlert(`${data.doc?.classCode} is successfully added`);
         setloading(false);
+          
         dispatch(setClasses([data.doc, ...classes]));
         await axios.post("/activitylog/create", {
           activity: ` ${name} class was created`,
           user: "admin",
+           user_Id:user._id
         });
-        await axios.post("/fees/create", { name, code: name.toLowerCase() });
+        await axios.post("/fees/create", { name, code: name.toLowerCase() ,  user_Id:user._id });
+        navigate('/academics/classes');
         setcampus("");
         setcode("");
         setname("");

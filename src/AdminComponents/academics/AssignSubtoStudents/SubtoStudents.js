@@ -15,65 +15,114 @@ import {
   Button,
 } from "@material-ui/core";
 import axios from "../../../store/axios";
-// Mock data
-// const studentsMock = [
-//   { _id: "s1", name: "Ravi Saini", className: "10th" },
-//   { _id: "s2", name: "Anita Sharma", className: "9th" },
-//   { _id: "s3", name: "Rahul Mehta", className: "10th" },
-//   { _id: "s4", name: "Pooja Verma", className: "8th" },
-// ];
+import { use } from "react";
 
+// Dummy Subjects (MongoDB _id format)
 const subjectsMock = [
-  { _id: "sub1", name: "Math" },
-  { _id: "sub2", name: "Science" },
-  { _id: "sub3", name: "History" },
+  { _id: "655f21a9e1d56c1234567890", name: "Math" },
+  { _id: "655f21a9e1d56c1234567891", name: "Science" },
+  { _id: "655f21a9e1d56c1234567892", name: "History" },
+  { _id: "655f21a9e1d56c1234567893", name: "Geography" },
 ];
 
+// Dummy Subject Groups (MongoDB _id format)
 const subjectGroups = [
   {
-    _id: "grp1",
+    _id: "655f2200e1d56c1234567890",
     name: "Science Group",
-    subjects: ["sub1", "sub2"], // Math, Science
+    subjects: ["655f21a9e1d56c1234567890", "655f21a9e1d56c1234567891"], // Math, Science
   },
   {
-    _id: "grp2",
+    _id: "655f2200e1d56c1234567891",
     name: "Humanities Group",
-    subjects: ["sub3"], // History
+    subjects: ["655f21a9e1d56c1234567892", "655f21a9e1d56c1234567893"], // History, Geography
   },
+];
+
+// Dummy Students
+const studentMock = [
+  {
+    _id: "655f2250e1d56c1234567890",
+    name: "Ravi",
+    middlename: "Kumar",
+    surname: "Saini",
+    class_id: "10A",
+  },
+  {
+    _id: "655f2250e1d56c1234567891",
+    name: "Anita",
+    middlename: "",
+    surname: "Sharma",
+    class_id: "10A",
+  },
+];
+
+// Dummy Classes
+const classesMock = [
+  { _id: "10A", name: "Class 10A" },
+  { _id: "9B", name: "Class 9B" },
 ];
 
 const AssignSubjects = () => {
   const [students, setStudents] = useState([]);
-   const [groups, setGroups] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [assignedSubjects, setAssignedSubjects] = useState({});
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
-  const [classes, setclasses] = useState([]);
+  const [classes, setClasses] = useState([]);
+
   const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
   useEffect(() => {
-    // setStudents(studentsMock);
     setSubjects(subjectsMock);
+    setGroups(subjectGroups);
+    setClasses(classesMock);
+
+    getClasses();
+    fetchGroups();
   }, []);
 
-  useEffect(() => {
-    // setloading(true);
-    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
-    if (user && user._id) {
-      fetchGroups(user._id);
-      axios.get("/classes").then((res) => {
-        // setloading(false);
-        let data = res.data;
+  const handleClassChange = (e) => {
+    const classId = e.target.value;
+    setSelectedClass(classId);
+    getStudents(classId);
+    setAssignedSubjects({});
+    const filteredStudents = studentMock.filter((s) => s.class_id === classId);
+    setStudents(filteredStudents);
+  };
 
-        setclasses(data);
-        // setstoreData(classesData);
-      });
-    }
-  }, []);
+  const handleGroupChange = (e) => {
+    setSelectedGroup(e.target.value);
+    setAssignedSubjects({});
+  };
 
-  const fetchGroups = async (userId) => {
+  const getStudents = async (classId) => {
     try {
-      const res = await axios.get(`/subject-groups/group/${userId}`);
+      const res = await axios.get(`/students/getAll/${classId}/${user._id}`);
+
+      if (res.data.length > 0) {
+        setStudents(res.data);
+      } else {
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
+  };
+
+  const getClasses = () => {
+    try {
+      axios.get(`/classes/getby/${user._id}`).then((res) => {
+        setClasses(res.data);
+      });
+    } catch (error) {
+      console.error("Error fetching class:", error);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const res = await axios.get(`/subject-groups/group/${user._id}`);
       setGroups(res.data.groups);
     } catch (err) {
       console.error("Error fetching groups:", err);
@@ -83,103 +132,76 @@ const AssignSubjects = () => {
   const handleCheckboxChange = (studentId, subjectId) => {
     setAssignedSubjects((prev) => {
       const currentSubjects = prev[studentId] || [];
-      const isAssigned = currentSubjects.includes(subjectId);
-      const updatedSubjects = isAssigned
-        ? currentSubjects.filter((s) => s !== subjectId)
+      const updated = currentSubjects.includes(subjectId)
+        ? currentSubjects.filter((id) => id !== subjectId)
         : [...currentSubjects, subjectId];
-      return {
-        ...prev,
-        [studentId]: updatedSubjects,
-      };
+      return { ...prev, [studentId]: updated };
     });
   };
 
-  const handleSelectAll = (subjectId) => {
-    setAssignedSubjects((prev) => {
-      const updated = { ...prev };
-      students.forEach((student) => {
-        const current = updated[student._id] || [];
-        if (!current.includes(subjectId)) {
-          updated[student._id] = [...current, subjectId];
-        }
-      });
-      return updated;
-    });
-  };
+  const isChecked = (studentId, subjectId) =>
+    assignedSubjects[studentId]?.includes(subjectId);
 
-  const isChecked = (studentId, subjectId) => {
-    return assignedSubjects[studentId]?.includes(subjectId);
-  };
-
-  const handleClassChange = (e) => {
-    setSelectedClass(e.target.value);
-    axios.get(`/students/getAll/${user._id}`).then((res) => {
-      // setloading(false);
-      setStudents(res.data);
-     
-    });
-
-    setAssignedSubjects({});
-  };
-
-  const handleGroupChange = (e) => {
-    console.log('object',e.target.value)
-    setSelectedGroup(e.target.value);
-    setAssignedSubjects({});
-  };
-
-  const handleSave = async () => {
-    const payload = Object.entries(assignedSubjects).map(
-      ([studentId, subjectIds]) => ({
-        studentId,
-        subjectIds,
-      })
+  const handleHeaderCheckbox = (subjectId) => {
+    const allChecked = students.every((student) =>
+      assignedSubjects[student._id]?.includes(subjectId)
     );
 
-    try {
-      const response = await fetch("/api/assign-subjects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignments: payload }),
-      });
+    const updatedAssignments = {};
 
-      const result = await response.json();
-      if (result.success) {
-        alert("Assignments saved successfully");
+    students.forEach((student) => {
+      const current = assignedSubjects[student._id] || [];
+
+      if (allChecked) {
+        // Unassign subject
+        updatedAssignments[student._id] = current.filter(
+          (id) => id !== subjectId
+        );
       } else {
-        alert("Save failed");
+        // Assign subject if not already present
+        updatedAssignments[student._id] = current.includes(subjectId)
+          ? current
+          : [...current, subjectId];
       }
-    } catch (error) {
-      console.error("Error saving assignments:", error);
-      alert("Error saving assignments");
-    }
+    });
+
+    setAssignedSubjects((prev) => ({
+      ...prev,
+      ...updatedAssignments,
+    }));
   };
 
-  // Class list and filtered students
-  // const classList = [...new Set(studentsMock.map((s) => s.className))];
-  // const filteredStudents = selectedClass
-  //   ? students.filter((s) => s.className === selectedClass)
-  //   : students;
+  const isHeaderChecked = (subjectId) =>
+    students.length > 0 &&
+    students.every((student) =>
+      assignedSubjects[student._id]?.includes(subjectId)
+    );
 
-  // Group and subject filtering
   const selectedGroupData = subjectGroups.find((g) => g._id === selectedGroup);
   const groupSubjectIds = selectedGroupData?.subjects || [];
   const filteredSubjects = subjects.filter((s) =>
     groupSubjectIds.includes(s._id)
   );
 
+  const handleSave = () => {
+    console.log("Selected Class ID:", selectedClass);
+    console.log("Selected Group ID:", selectedGroup);
+    console.log("Assigned Subjects:", assignedSubjects);
+    alert("Assignments saved! (See console for data)");
+  };
+
   return (
-    <Paper style={{ padding: "20px", overflowX: "auto" }}>
+    <Paper style={{ padding: 20, overflowX: "auto" }}>
       <Typography variant="h6" gutterBottom>
-        Assign Subjects to Students
+        Assign Subject Group to Class (and Students)
       </Typography>
 
-      <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+      <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
         <FormControl style={{ minWidth: 200 }}>
           <InputLabel>Select Class</InputLabel>
           <Select value={selectedClass} onChange={handleClassChange}>
             <MenuItem value="">All Classes</MenuItem>
-            {classes && classes.map((cls) => (
+            {classes.map((cls) => (
               <MenuItem key={cls._id} value={cls._id}>
                 {cls.name}
               </MenuItem>
@@ -191,7 +213,7 @@ const AssignSubjects = () => {
           <InputLabel>Select Subject Group</InputLabel>
           <Select value={selectedGroup} onChange={handleGroupChange}>
             <MenuItem value="">All Groups</MenuItem>
-            {groups && groups.map((grp) => (
+            {groups.map((grp) => (
               <MenuItem key={grp._id} value={grp._id}>
                 {grp.group_name}
               </MenuItem>
@@ -205,40 +227,47 @@ const AssignSubjects = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>
-                  <strong>Student</strong>
+                <TableCell rowSpan={2}>
+                  <strong>Student Name</strong>
                 </TableCell>
-                {students.map((subject) => (
+                <TableCell align="center" colSpan={filteredSubjects.length}>
+                  <strong>{selectedGroupData?.name || "Subjects"}</strong>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                {filteredSubjects.map((subject) => (
                   <TableCell key={subject._id} align="center">
                     <Checkbox
+                      checked={isHeaderChecked(subject._id)}
+                      onChange={() => handleHeaderCheckbox(subject._id)}
                       color="primary"
-                      checked={students.every((student) =>
-                        isChecked(student._id, subject._id)
-                      )}
-                      onChange={() => handleSelectAll(subject._id)}
                     />
                     <strong>{subject.name}</strong>
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
+
             <TableBody>
-              {students.map((student) => (
-                <TableRow key={student._id}>
-                  <TableCell>{student.name} {student.middlename} {student.surname}</TableCell>
-                  {filteredSubjects.map((subject) => (
-                    <TableCell key={subject._id} align="center">
-                      <Checkbox
-                        checked={isChecked(student._id, subject._id)}
-                        onChange={() =>
-                          handleCheckboxChange(student._id, subject._id)
-                        }
-                        color="primary"
-                      />
+              {students &&
+                students?.map((student) => (
+                  <TableRow key={student._id}>
+                    <TableCell>
+                      {student.name} {student.middlename} {student.surname}
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))}
+                    {filteredSubjects.map((subject) => (
+                      <TableCell key={subject._id} align="center">
+                        <Checkbox
+                          checked={isChecked(student._id, subject._id)}
+                          onChange={() =>
+                            handleCheckboxChange(student._id, subject._id)
+                          }
+                          color="primary"
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
 

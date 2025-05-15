@@ -22,7 +22,6 @@ function Cards({ counts }) {
     setcampuses(counts?.campuses);
     setdivisions(counts?.divisions);
   }, [counts]);
-
   return (
     <div className="row">
       <Card

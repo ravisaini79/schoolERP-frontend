@@ -10,16 +10,14 @@ import { Link } from "react-router-dom";
 import { studentStatus } from "../../../data";
 import AddIcon from "@material-ui/icons/Add";
 import Loading from "../../../Loading";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect";
+import { selectUser } from "../../../store/slices/userSlice";
 
 const headCells = [
   { id: "userID", numeric: false, disablePadding: false, label: "StudentID" },
   { id: "photoUrl", numeric: false, disablePadding: false, label: "Photo" },
   { id: "name", numeric: false, disablePadding: true, label: "Name" },
-  {
-    id: "middlename",
-    disablePadding: true,
-    label: "Middle Name",
-  },
+  { id: "middlename", disablePadding: true, label: "Middle Name" },
   { id: "surname", disablePadding: true, label: "Last Name" },
   { id: "status", disablePadding: false, label: "Status" },
   { id: "class", disablePadding: false, label: "Class" },
@@ -36,33 +34,50 @@ function AllStudents() {
   const classes = useSelector(selectClasses);
   const [storeData, setstoreData] = useState([]);
   const [loading, setloading] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const user = useSelector(selectUser);
 
-  const classesOptions = classes.map((e) => {
-    return {
-      name: e.name,
-      id: e.classCode,
-    };
-  });
-
-    const [loggedInUser, setLoggedInUser] = useState("");
-
+  const classesOptions = classes.map((e) => ({
+    name: e.name,
+    id: e.classCode,
+  }));
 
   useEffect(() => {
-    setloading(true);
-    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
-    
-    if (user && user.userID) {
-      // console.log("✅ Logged in user:", user);
-      setLoggedInUser(user)
-    } else {
-      console.log("❌ No user found in localStorage");
+    const fetchStudents = async () => {
+      if (!selectedSchool?._id) {
+        setstudents([]); // Clear student list if no school is selected
+        return;
+      }
+
+      setloading(true);
+      try {
+        const url = `/students/school/${selectedSchool._id}`;
+        const response = await axios.get(url);
+        setstudents(response.data);
+        setstoreData(response.data);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      } finally {
+        setloading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [selectedSchool]);
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    setname("");
+    setid("");
+    setclass("");
+    setstatus("");
+    setgender("");
+
+    if (!school?._id) {
+      setstudents([]);
+      setstoreData([]);
     }
-    axios.get(`/students/getAll/${user._id}`).then((res) => {
-      setloading(false);
-      setstudents(res.data);
-      setstoreData(res.data);
-    });
-  }, []);
+  };
 
   const generatePDF = () => {
     const headers = [
@@ -74,7 +89,6 @@ function AllStudents() {
       { key: "status", label: "Status" },
       { key: "classID", label: "Class" },
     ];
-
     pdf({ data: students, headers, filename: "Allstudents" });
   };
 
@@ -83,6 +97,8 @@ function AllStudents() {
     setname("");
     setid("");
     setclass("");
+    setstatus("");
+    setgender("");
     setstudents(storeData);
   };
 
@@ -133,9 +149,10 @@ function AllStudents() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    let newStudents = [];
+    let newStudents = storeData;
+
     if (classID) {
-      newStudents = storeData.filter((i) =>
+      newStudents = newStudents.filter((i) =>
         i.classID.toLowerCase().includes(classID.toLowerCase())
       );
     }
@@ -161,6 +178,7 @@ function AllStudents() {
         i.gender.toLowerCase().includes(gender.toLowerCase())
       );
     }
+
     setstudents(newStudents);
   };
 
@@ -180,10 +198,8 @@ function AllStudents() {
     let ans = window.confirm(
       `Are you sure you want to withdraw this student ${i}`
     );
-    console.log(ans);
     if (ans) {
       axios.put(`/students/update/${i}`, { withdraw: true }).then((res) => {
-        console.log(res.data);
         if (res.data.error) {
           errorAlert(res.data.error);
         }
@@ -195,32 +211,51 @@ function AllStudents() {
   return (
     <div>
       {loading && <Loading />}
-      <Search
-        title=""
-        handleReset={handleReset}
-        handleSearch={handleSearch}
-        inputFields={inputFields}
-      />
-      <div className="d-flex justify-content-end mb-3">
-        <Link className="btn btn-outline-info" to="/students/new">
-          <AddIcon />
-          Add New Student
-        </Link>
-      </div>
-      <StudentsTable
-        route="students"
-        handleWithdraw={handleWithdraw}
-        handleDelete={handleDelete}
-        students={students}
-        noData="No sudents in the database yet"
-        headCells={headCells}
-      />
 
-      <div className="d-flex justify-content-end">
-        <button onClick={generatePDF} className="btn orange__btn ">
-          Download PDF
-        </button>
+      <div className="mb-3">
+        <GlobalSchoolSelect onSchoolSelect={handleSchoolSelect} />
+        {selectedSchool && selectedSchool.name && (
+          <div className="mt-2">
+            <strong>Selected School:</strong> {selectedSchool.name}
+          </div>
+        )}
       </div>
+
+      {selectedSchool?._id ? (
+        <>
+          <Search
+            title=""
+            handleReset={handleReset}
+            handleSearch={handleSearch}
+            inputFields={inputFields}
+          />
+
+          <div className="d-flex justify-content-end mb-3">
+            <Link className="btn btn-outline-info" to="/students/new">
+              <AddIcon /> Add New Student
+            </Link>
+          </div>
+
+          <StudentsTable
+            route="students"
+            handleWithdraw={handleWithdraw}
+            handleDelete={handleDelete}
+            students={students}
+            noData="No students found for the selected criteria"
+            headCells={headCells}
+          />
+
+          <div className="d-flex justify-content-end">
+            <button onClick={generatePDF} className="btn orange__btn">
+              Download PDF
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="alert alert-warning mt-4">
+          Please select a school to view students.
+        </div>
+      )}
     </div>
   );
 }

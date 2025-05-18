@@ -6,6 +6,8 @@ import axios from "../../../store/axios";
 import { errorAlert, successAlert } from "../../../utils";
 import { useDispatch } from "react-redux";
 import { setSections } from "../../../store/slices/schoolSlice";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect";
+import Loading from "../../../Loading";
 
 const tableHeader = [
   { id: "_id", name: "ID" },
@@ -20,135 +22,207 @@ function Sections() {
   const [id, setid] = useState("");
   const [loading, setloading] = useState(false);
   const [createLoading, setcreateLoading] = useState(false);
-  const [dataloading, setdataloading] = useState([]);
   const [sections, setsections] = useState([]);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
 
-  const handleDelete = (delID) => {
-    setloading(true);
-    axios
-      .delete(`/sections/delete/${delID}`)
-      .then(async (res) => {
-        setloading(false);
-        if (res.data.error) {
-          errorAlert(res.data.error);
-          return 0;
-        }
-        setsections(sections.filter((i) => i._id !== delID));
-        dispatch(setSections(sections.filter((i) => i._id !== delID)));
-        await axios.post("/activitylog/create", {
-          activity: `section ${id} was deleted`,
-          user: "admin",
-        });
+  useEffect(() => {
+    if (!selectedSchool) {
+      setsections([]);
+      return;
+    }
+
+    setIsLoading(true);
+    axios.get(`/sections/school/${selectedSchool._id}`)
+      .then((res) => {
+        setsections(res.data);
+        dispatch(setSections(res.data));
       })
       .catch((err) => {
-        setloading(false);
         console.log(err);
-        errorAlert("something when wrong");
+        errorAlert("Failed to fetch sections");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [selectedSchool, dispatch]);
+
+  const handleDelete = (delID) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this section?");
+    if (!confirmDelete) return;
+
+    setloading(true);
+    axios.delete(`/sections/delete/${delID}`)
+      .then(async (res) => {
+        if (res.data.error) {
+          errorAlert(res.data.error);
+          return;
+        }
+        const updated = sections.filter((i) => i._id !== delID);
+        setsections(updated);
+        dispatch(setSections(updated));
+        await axios.post("/activitylog/create", {
+          activity: `Section ${id} was deleted from school ${selectedSchool?.name || "unknown"}`,
+          user: "admin",
+        });
+        successAlert("Section deleted successfully");
+      })
+      .catch((err) => {
+        console.log(err);
+        errorAlert("Something went wrong");
+      })
+      .finally(() => {
+        setloading(false);
       });
   };
 
   const handleEdit = (editID) => {
-    setopenEdit(true);
-    let editSections = sections.find((e) => e._id === editID);
-    seteditname(editSections?.name);
-    setid(editID);
+    const editSection = sections.find((e) => e._id === editID);
+    if (editSection) {
+      setopenEdit(true);
+      seteditname(editSection.name);
+      setid(editID);
+    }
   };
+
   const onEdit = () => {
+    if (!editname.trim()) {
+      errorAlert("Please enter a section name");
+      return;
+    }
+
     setloading(true);
-    axios
-      .put(`/sections/update/${id}`, { name: editname })
+    axios.put(`/sections/update/${id}`, { 
+      name: editname,
+      user_Id: selectedSchool?._id // Maintain school association
+    })
       .then(async (res) => {
-        setloading(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        setsections(sections.map((i) => (i._id === id ? res.data?.doc : i)));
-        dispatch(
-          setSections(sections.map((i) => (i._id === id ? res.data?.doc : i)))
+        const updated = sections.map((i) => 
+          i._id === id ? { ...i, name: editname } : i
         );
+        setsections(updated);
+        dispatch(setSections(updated));
         await axios.post("/activitylog/create", {
-          activity: `section ${editname} was edited`,
+          activity: `Section ${editname} was updated in school ${selectedSchool?.name || "unknown"}`,
           user: "admin",
         });
+        successAlert("Section updated successfully");
         setopenEdit(false);
       })
       .catch((err) => {
-        setloading(false);
         console.log(err);
-        errorAlert("something when wrong");
+        errorAlert("Something went wrong");
+      })
+      .finally(() => {
+        setloading(false);
       });
   };
 
-  useEffect(() => {
-    setdataloading(true);
-    axios.get("/sections").then((res) => {
-      setdataloading(false);
-      console.log(res.data);
-      setsections(res.data);
-    });
-  }, []);
-
   const handleAddSection = (e) => {
     e.preventDefault();
+    
+    if (!selectedSchool) {
+      errorAlert("Please select a school first");
+      return;
+    }
+
+    if (!name.trim()) {
+      errorAlert("Please enter a section name");
+      return;
+    }
+
     setcreateLoading(true);
-    axios
-      .post("/sections/create", { name })
+    axios.post("/sections/create", { 
+      name,
+      user_Id: selectedSchool._id // Associate with selected school
+    })
       .then(async (res) => {
-        console.log("submited");
-        console.log(res);
-        setcreateLoading(false);
         if (res.data.error) {
-          errorAlert("something when wrong");
-          return 0;
+          errorAlert(res.data.error);
+          return;
         }
-        successAlert("successfully created");
-        setsections([res.data.doc, ...sections]);
-        dispatch(setSections([res.data.doc, ...sections]));
+        successAlert("Section created successfully");
+        const updated = [res.data.doc, ...sections];
+        setsections(updated);
+        dispatch(setSections(updated));
         await axios.post("/activitylog/create", {
-          activity: `section ${name} was added`,
+          activity: `New section ${name} added to school ${selectedSchool.name}`,
           user: "admin",
         });
         setname("");
       })
       .catch((err) => {
-        setcreateLoading(false);
         console.log(err);
-        errorAlert("something when wrong");
+        errorAlert("Something went wrong");
+      })
+      .finally(() => {
+        setcreateLoading(false);
       });
+  };
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    setsections([]);
+    setname("");
   };
 
   return (
     <div>
       <h3>Sections</h3>
-      <div className="row">
-        <div className="col-sm-12 mb-5">
-          <AddSection
-            loading={createLoading}
-            name={name}
-            setname={setname}
-            onSubmit={handleAddSection}
-          />
-        </div>
-        <div className="col-sm-12">
-          <ListSection
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
-            loading={dataloading}
-            data={sections}
-            tableHeader={tableHeader}
-          />
-        </div>
+      
+      <div className="mb-4">
+        <GlobalSchoolSelect onSchoolSelect={handleSchoolSelect} />
+        {selectedSchool && (
+          <div className="mt-2">
+            <strong>Selected School:</strong> {selectedSchool.name}
+          </div>
+        )}
       </div>
-      <EditSection
-        open={openEdit}
-        loading={loading}
-        setopen={setopenEdit}
-        name={editname}
-        setname={seteditname}
-        onSubmit={onEdit}
-      />
+
+      {isLoading ? (
+        <Loading />
+      ) : selectedSchool ? (
+        <>
+          <div className="row">
+            <div className="col-sm-12 mb-5">
+              <AddSection
+                loading={createLoading}
+                name={name}
+                setname={setname}
+                onSubmit={handleAddSection}
+              />
+            </div>
+            <div className="col-sm-12">
+              <ListSection
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+                loading={isLoading}
+                data={sections}
+                tableHeader={tableHeader}
+                noData="No sections found for this school"
+              />
+            </div>
+          </div>
+
+          <EditSection
+            open={openEdit}
+            loading={loading}
+            setopen={setopenEdit}
+            name={editname}
+            setname={seteditname}
+            onSubmit={onEdit}
+          />
+        </>
+      ) : (
+        <div className="alert alert-info">
+          Please select a school to view and manage sections.
+        </div>
+      )}
     </div>
   );
 }

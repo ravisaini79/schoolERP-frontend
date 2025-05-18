@@ -10,8 +10,12 @@ import axios from "../../../store/axios";
 import { useSelector, useDispatch } from "react-redux";
 import { selectStaff, setStaff } from "../../../store/slices/schoolSlice";
 import imageCompression from "browser-image-compression";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect"; // Import the school selector
 
 function NewStaff() {
+  // School selection state
+  const [selectedSchool, setSelectedSchool] = useState(null);
+
   //personal
   const [name, setname] = useState("");
   const [lastname, setlastname] = useState("");
@@ -108,19 +112,22 @@ function NewStaff() {
     setaddress("");
   };
 
-  const handleCoursesCheckbox = (e) => {
-    console.log(e, "ckecked");
-  };
-
   const handleCreateSubmit = async () => {
+    if (!selectedSchool) {
+      errorAlert("Please select a school first");
+      return;
+    }
+
+    setloading(true);
     const fileData = new FormData();
     let path = "";
+    
     if (profileUrl) {
       fileData.append("photo", profileUrl);
       const fileResponse = await axios.post("/upload", { dataUrl: profileimg });
-      // axios.post("/upload", fileData, {}).then((res) => {
       path = fileResponse.data.url;
     }
+    
     axios
       .post("/teachers/create", {
         profileUrl: path,
@@ -162,6 +169,7 @@ function NewStaff() {
           address: address,
           lastname: nextlastname,
         },
+        user_Id: selectedSchool._id, // Add school ID to the staff member
       })
       .then(async (response) => {
         setloading(false);
@@ -171,16 +179,16 @@ function NewStaff() {
         }
         dispatch(setStaff([response.data.teacher, ...staff]));
         await axios.post("/activitylog/create", {
-          activity: `staff member ${name} ${lastname} was created`,
+          activity: `staff member ${name} ${lastname} was created for school ${selectedSchool.name}`,
           user: "admin",
         });
         handleReset();
-        successAlert("successfully added");
+        successAlert("Staff member successfully added");
       })
       .catch((err) => {
         setloading(false);
         console.log(err);
-        errorAlert("something went wrong");
+        errorAlert("Something went wrong");
       });
   };
 
@@ -191,7 +199,7 @@ function NewStaff() {
   const handleChangeFile = async (e) => {
     const selected = await imageCompression(e.target.files[0], options);
     if (selected?.size > 2000000) {
-      errorAlert("image is too large");
+      errorAlert("Image is too large");
     } else if (selected) {
       setprofileUrl(selected);
       const fileReader = new FileReader();
@@ -200,20 +208,31 @@ function NewStaff() {
         setprofileimg(fileReader.result);
       };
     } else {
-      console.log("no file selected");
+      console.log("No file selected");
     }
   };
 
   return (
     <div>
       <h2>Add New Staff Member</h2>
-      <div>
+      <div className="content__container mb-3">
+        <GlobalSchoolSelect 
+          onSchoolSelect={(school) => setSelectedSchool(school)} 
+        />
+      </div>
+      
+      {selectedSchool && (
         <form action="" className="content__container">
+          <div className="mb-3">
+            <h5>School: {selectedSchool.name}</h5>
+          </div>
+          
           <ProfilePicture
             profileimg={profileimg}
             profileUrl={profileUrl}
             setprofileUrl={handleChangeFile}
           />
+          
           <PersonalInfo
             register={register}
             title={title}
@@ -245,7 +264,9 @@ function NewStaff() {
             allerge={allege}
             setallerge={setallege}
           />
+          
           <br className="my-5" />
+          
           <EmplymentDetails
             register={register}
             errors={errors}
@@ -273,9 +294,10 @@ function NewStaff() {
             setqualification={setqualification}
             years={years}
             setyears={setyears}
-            handleCoursesCheckbox={handleCoursesCheckbox}
           />
+          
           <br className="my-5" />
+          
           <ContactDetails
             register={register}
             errors={errors}
@@ -288,7 +310,9 @@ function NewStaff() {
             setpostalAddress={setpostalAddress}
             postalAddress={postalAddress}
           />
+          
           <br className="my-5" />
+          
           <NextofKin
             lastname={nextlastname}
             setlastname={setnextlastname}
@@ -340,7 +364,7 @@ function NewStaff() {
             </button>
           </div>
         </form>
-      </div>
+      )}
     </div>
   );
 }

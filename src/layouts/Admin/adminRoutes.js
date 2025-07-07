@@ -450,12 +450,27 @@ const SubjectsGroup = React.lazy(() =>
   import("../../AdminComponents/academics/SubjectsGroup/SubjectsGroup")
 );
 
+
+const marksentry = React.lazy(() =>
+  import("../../AdminComponents/MarksEntery/MarksEntery")
+);
+
+const marksheetGen = React.lazy(() =>
+  import("../../AdminComponents/MarksheetGenerator/MarksheetGen")
+);
+
 const routes = [
   {
     path: "/",
     name: "Dashboard",
     exact: true,
     component: Dashboard,
+  },
+    {
+    path: "/academics/marksentry",
+    name: "Marks Entry",
+    exact: true,
+    component: marksentry,
   },
   {
     path: "/academics/subjects",
@@ -474,6 +489,12 @@ const routes = [
     name: "Assign Subject to Students",
     exact: true,
     component: AssignSubtoStudent,
+  },
+  {
+    path: "/academics/marksheetgen",
+    name: "Generate Marksheet",
+    exact: true,
+    component: marksheetGen,
   },
   {
     path: "/reports",

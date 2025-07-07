@@ -18,12 +18,6 @@ import axios from "../../../store/axios";
 import { use } from "react";
 
 // Dummy Subjects (MongoDB _id format)
-const subjectsMock = [
-  { _id: "655f21a9e1d56c1234567890", name: "Math" },
-  { _id: "655f21a9e1d56c1234567891", name: "Science" },
-  { _id: "655f21a9e1d56c1234567892", name: "History" },
-  { _id: "655f21a9e1d56c1234567893", name: "Geography" },
-];
 
 // Dummy Subject Groups (MongoDB _id format)
 const subjectGroups = [
@@ -73,14 +67,31 @@ const AssignSubjects = () => {
   const [classes, setClasses] = useState([]);
 
   const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
-  useEffect(() => {
-    setSubjects(subjectsMock);
-    setGroups(subjectGroups);
-    setClasses(classesMock);
 
+  useEffect(() => {
     getClasses();
     fetchGroups();
-  }, []);
+    // const fetchAssignedSubjects = async () => {
+    //   try {
+    //     const res = await axios.get(
+    //       `/assignsubjects/list?class_id=${selectedClass}&subject_group_id=${selectedGroup}`
+    //     );
+    //     const result = {};
+
+    //     res.data.forEach((item) => {
+    //       result[item.student_id] = item.subject_ids; // subject_ids should be an array
+    //     });
+
+    //     setAssignedSubjects(result);
+    //   } catch (error) {
+    //     console.error("Error fetching assigned subjects:", error);
+    //   }
+    // };
+
+    if (selectedClass && selectedGroup) {
+      // fetchAssignedSubjects();
+    }
+  }, [selectedClass, selectedGroup]);
 
   const handleClassChange = (e) => {
     const classId = e.target.value;
@@ -92,7 +103,9 @@ const AssignSubjects = () => {
   };
 
   const handleGroupChange = (e) => {
-    setSelectedGroup(e.target.value);
+    console.log("select group>>>", e.target.value);
+    setSubjects(e.target.value.subjectIds);
+    setSelectedGroup(e.target.value._id);
     setAssignedSubjects({});
   };
 
@@ -179,16 +192,39 @@ const AssignSubjects = () => {
 
   const selectedGroupData = subjectGroups.find((g) => g._id === selectedGroup);
   const groupSubjectIds = selectedGroupData?.subjects || [];
-  const filteredSubjects = subjects.filter((s) =>
-    groupSubjectIds.includes(s._id)
-  );
+  // const subjects = subjects.filter((s) =>
+  //   groupSubjectIds.includes(s._id)
+  // );
 
-  const handleSave = () => {
-    console.log("Selected Class ID:", selectedClass);
-    console.log("Selected Group ID:", selectedGroup);
-    console.log("Assigned Subjects:", assignedSubjects);
-    alert("Assignments saved! (See console for data)");
+  const handleSave = async () => {
+    if (!selectedClass || !selectedGroup) {
+      alert("Please select both Class and Subject Group.");
+      return;
+    }
+
+    try {
+      const assignments = Object.entries(assignedSubjects).map(
+        ([studentId, subjectIds]) => ({
+          student_id: studentId,
+          user_id: user._id,
+          class_id: selectedClass,
+          subject_group_id: selectedGroup,
+          subject_ids: subjectIds,
+        })
+      );
+
+      for (const assignment of assignments) {
+        await axios.post("/assignsubjects/create", assignment);
+      }
+
+      alert("Assignments saved successfully!");
+    } catch (error) {
+      console.error("Error saving assignments:", error);
+      alert("Failed to save assignments. Check console for details.");
+    }
   };
+
+  console.log("select subjects>>>", subjects);
 
   return (
     <Paper style={{ padding: 20, overflowX: "auto" }}>
@@ -214,7 +250,7 @@ const AssignSubjects = () => {
           <Select value={selectedGroup} onChange={handleGroupChange}>
             <MenuItem value="">All Groups</MenuItem>
             {groups.map((grp) => (
-              <MenuItem key={grp._id} value={grp._id}>
+              <MenuItem key={grp._id} value={grp}>
                 {grp.group_name}
               </MenuItem>
             ))}
@@ -230,42 +266,44 @@ const AssignSubjects = () => {
                 <TableCell rowSpan={2}>
                   <strong>Student Name</strong>
                 </TableCell>
-                <TableCell align="center" colSpan={filteredSubjects.length}>
+                <TableCell align="center" colSpan={subjects.length}>
                   <strong>{selectedGroupData?.name || "Subjects"}</strong>
                 </TableCell>
               </TableRow>
               <TableRow>
-                {filteredSubjects.map((subject) => (
-                  <TableCell key={subject._id} align="center">
-                    <Checkbox
-                      checked={isHeaderChecked(subject._id)}
-                      onChange={() => handleHeaderCheckbox(subject._id)}
-                      color="primary"
-                    />
-                    <strong>{subject.name}</strong>
-                  </TableCell>
-                ))}
+                {Array.isArray(subjects) &&
+                  subjects?.map((subject) => (
+                    <TableCell key={subject._id} align="center">
+                      <Checkbox
+                        checked={isHeaderChecked(subject._id)}
+                        onChange={() => handleHeaderCheckbox(subject._id)}
+                        color="primary"
+                      />
+                      <strong>{subject.subject_name}</strong>
+                    </TableCell>
+                  ))}
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {students &&
+              {Array.isArray(subjects) &&
                 students?.map((student) => (
                   <TableRow key={student._id}>
                     <TableCell>
                       {student.name} {student.middlename} {student.surname}
                     </TableCell>
-                    {filteredSubjects.map((subject) => (
-                      <TableCell key={subject._id} align="center">
-                        <Checkbox
-                          checked={isChecked(student._id, subject._id)}
-                          onChange={() =>
-                            handleCheckboxChange(student._id, subject._id)
-                          }
-                          color="primary"
-                        />
-                      </TableCell>
-                    ))}
+                    {subjects &&
+                      subjects?.map((subject) => (
+                        <TableCell key={subject._id} align="center">
+                          <Checkbox
+                            checked={isChecked(student._id, subject._id)}
+                            onChange={() =>
+                              handleCheckboxChange(student._id, subject._id)
+                            }
+                            color="primary"
+                          />
+                        </TableCell>
+                      ))}
                   </TableRow>
                 ))}
             </TableBody>

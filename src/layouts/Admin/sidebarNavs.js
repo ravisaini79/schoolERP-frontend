@@ -169,6 +169,16 @@ const _nav = [
         name: "Assign Subject to Students",
         to: "/academics/assignsubjects",
       },
+         {
+        _tag: "CSidebarNavItem",
+        name: "Marks Entery",
+        to: "/academics/marksentry",
+      },
+        {
+        _tag: "CSidebarNavItem",
+        name: "Generate Marksheet",
+        to: "/academics/marksheetgen",
+      },
       {
         _tag: "CSidebarNavItem",
         name: "Courses",

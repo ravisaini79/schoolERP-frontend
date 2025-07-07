@@ -102,7 +102,7 @@ function AcademicsDetails(props) {
             </option>
             {classes.length > 0 ? (
               classes.map((e) => (
-                <option key={e.classCode} value={e.classCode}>
+                <option key={e._id} value={e._id}>
                   {e.name}
                 </option>
               ))

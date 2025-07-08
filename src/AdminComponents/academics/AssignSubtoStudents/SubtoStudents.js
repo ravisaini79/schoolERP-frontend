@@ -33,38 +33,16 @@ const subjectGroups = [
   },
 ];
 
-// Dummy Students
-const studentMock = [
-  {
-    _id: "655f2250e1d56c1234567890",
-    name: "Ravi",
-    middlename: "Kumar",
-    surname: "Saini",
-    class_id: "10A",
-  },
-  {
-    _id: "655f2250e1d56c1234567891",
-    name: "Anita",
-    middlename: "",
-    surname: "Sharma",
-    class_id: "10A",
-  },
-];
-
-// Dummy Classes
-const classesMock = [
-  { _id: "10A", name: "Class 10A" },
-  { _id: "9B", name: "Class 9B" },
-];
-
 const AssignSubjects = () => {
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [assignedSubjects, setAssignedSubjects] = useState({});
   const [selectedClass, setSelectedClass] = useState("");
+  const [selectedsection, setSelectedSection] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [classes, setClasses] = useState([]);
+  const [section, setSection] = useState([]);
 
   const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
 
@@ -98,8 +76,17 @@ const AssignSubjects = () => {
     setSelectedClass(classId);
     getStudents(classId);
     setAssignedSubjects({});
-    const filteredStudents = studentMock.filter((s) => s.class_id === classId);
+    const filteredStudents = students.filter((s) => s.class_id === classId);
     setStudents(filteredStudents);
+  };
+
+  const handleSectionChange = (e) => {
+    const sectionId = e.target.value;
+    setSelectedSection(sectionId)
+
+    let data = students.filter((i) => i.section === sectionId);
+
+    setStudents(data);
   };
 
   const handleGroupChange = (e) => {
@@ -127,6 +114,18 @@ const AssignSubjects = () => {
     try {
       axios.get(`/classes/getby/${user._id}`).then((res) => {
         setClasses(res.data);
+        getSection();
+      });
+    } catch (error) {
+      console.error("Error fetching class:", error);
+    }
+  };
+
+  const getSection = () => {
+    try {
+      axios.get(`/sections/${user._id}`).then((res) => {
+        console.log(res.data);
+        setSection(res.data);
       });
     } catch (error) {
       console.error("Error fetching class:", error);
@@ -210,6 +209,7 @@ const AssignSubjects = () => {
           class_id: selectedClass,
           subject_group_id: selectedGroup,
           subject_ids: subjectIds,
+          user_Id: user._id,
         })
       );
 
@@ -238,6 +238,17 @@ const AssignSubjects = () => {
           <Select value={selectedClass} onChange={handleClassChange}>
             <MenuItem value="">All Classes</MenuItem>
             {classes.map((cls) => (
+              <MenuItem key={cls._id} value={cls._id}>
+                {cls.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl style={{ minWidth: 200 }}>
+          <InputLabel>Select Section</InputLabel>
+          <Select value={selectedsection} onChange={handleSectionChange}>
+            <MenuItem value="">All Sections</MenuItem>
+            {section.map((cls) => (
               <MenuItem key={cls._id} value={cls._id}>
                 {cls.name}
               </MenuItem>

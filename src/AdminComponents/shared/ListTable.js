@@ -23,7 +23,7 @@ const useStyles2 = makeStyles({
 });
 
 export default function CustomPaginationActionsTable({
-  data,
+  data ,
   tableHeader,
   handleEdit,
   handleDelete,
@@ -40,6 +40,8 @@ export default function CustomPaginationActionsTable({
 
   const emptyRows =
     rowsPerPage - Math.min(rowsPerPage, data?.length - page * rowsPerPage);
+
+    console.log('data>>>>>>>>',data)
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -94,7 +96,7 @@ export default function CustomPaginationActionsTable({
             ) : (
               <>
                 {(rowsPerPage > 0
-                  ? data?.slice(
+                  ?  data?.slice(
                       page * rowsPerPage,
                       page * rowsPerPage + rowsPerPage
                     )

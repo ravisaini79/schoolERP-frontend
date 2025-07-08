@@ -14,7 +14,7 @@ const tableHeader = [
   { id: "name", name: "Section" },
   { id: "createdAt", name: "Added" },
 ];
-
+ const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
 function Sections() {
   const [openEdit, setopenEdit] = useState(false);
   const [name, setname] = useState("");
@@ -123,6 +123,17 @@ function Sections() {
       });
   };
 
+
+  useEffect(() => {
+    setdataloading(true);
+    axios.get(`/sections/${user._id}`).then((res) => {
+      setdataloading(false);
+      console.log(res.data);
+      setsections(res.data);
+    });
+  }, []);
+
+
   const handleAddSection = (e) => {
     e.preventDefault();
     
@@ -137,10 +148,13 @@ function Sections() {
     }
 
     setcreateLoading(true);
+
+
     axios.post("/sections/create", { 
       name,
       user_Id: selectedSchool._id // Associate with selected school
     })
+
       .then(async (res) => {
         if (res.data.error) {
           errorAlert(res.data.error);
@@ -153,6 +167,7 @@ function Sections() {
         await axios.post("/activitylog/create", {
           activity: `New section ${name} added to school ${selectedSchool.name}`,
           user: "admin",
+         user_Id: user._id 
         });
         setname("");
       })

@@ -6,6 +6,9 @@ import { errorAlert, successAlert } from "../../../utils";
 import DivisionForm from "./DepartmentForm";
 import { useDispatch } from "react-redux";
 import { setDepartments } from "../../../store/slices/schoolSlice";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect";
+import Loading from "../../../Loading";
+
 const tableHeadings = [
   { id: "createdAt", name: "Created At" },
   { id: "name", name: "Name" },
@@ -20,25 +23,34 @@ function Division() {
   const [open, setOpen] = useState(false);
   const [editID, seteditID] = useState("");
   const [addLoading, setaddLoading] = useState(false);
-  const [divisions, setdivisions] = useState([]);
+  const [departments, setdepartments] = useState([]);
   const [storedata, setstoredata] = useState([]);
   const [openEdit, setopenEdit] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    setloading(true);
-    axios
-      .get("/departments")
+    if (!selectedSchool) {
+      setdepartments([]);
+      return;
+    }
+
+    setIsLoading(true);
+    axios.get(`/departments/school/${selectedSchool._id}`)
       .then((res) => {
-        setloading(false);
-        setdivisions(res.data);
+        setdepartments(res.data);
         setstoredata(res.data);
+        dispatch(setDepartments(res.data));
       })
       .catch((err) => {
         console.log(err);
-        setloading(false);
+        errorAlert("Failed to fetch departments");
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-  }, []);
+  }, [selectedSchool, dispatch]);
 
   const inputFields = [
     {
@@ -51,120 +63,173 @@ function Division() {
   ];
 
   const handleDelete = (id) => {
-    const ans = window.confirm("are you sure you want to delete");
-    if (ans) {
-      axios.delete(`/departments/delete/${id}`).then(async (res) => {
+    const ans = window.confirm("Are you sure you want to delete this department?");
+    if (!ans) return;
+
+    setloading(true);
+    axios.delete(`/departments/delete/${id}`)
+      .then(async (res) => {
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        console.log(divisions, id);
-        setdivisions(divisions.filter((e) => e._id !== id));
-        let deleted = divisions.find((e) => e._id === id);
-        dispatch(setDepartments(divisions.filter((e) => e._id !== id)));
+        const updated = departments.filter((e) => e._id !== id);
+        setdepartments(updated);
+        dispatch(setDepartments(updated));
+        let deleted = departments.find((e) => e._id === id);
         await axios.post("/activitylog/create", {
-          activity: `department ${deleted?.name} was deleted`,
+          activity: `Department ${deleted?.name} was deleted from school ${selectedSchool?.name || "unknown"}`,
           user: "admin",
         });
+        successAlert("Department deleted successfully");
+      })
+      .catch((err) => {
+        console.log(err);
+        errorAlert("Failed to delete department");
+      })
+      .finally(() => {
+        setloading(false);
       });
-    }
   };
+
   const handleEdit = (id) => {
-    setopenEdit(true);
-    let division = divisions.find((e) => e._id === id);
-    seteditID(id);
-    setname(division?.name);
-    setdescription(division?.description);
+    const department = departments.find((e) => e._id === id);
+    if (department) {
+      setopenEdit(true);
+      seteditID(id);
+      setname(department.name);
+      setdescription(department.description);
+    }
   };
 
   const handleOpenAdd = () => {
+    if (!selectedSchool) {
+      errorAlert("Please select a school first");
+      return;
+    }
     setOpen(true);
   };
 
-  const handleAddDivision = () => {
+  const handleAddDepartment = () => {
+    if (!selectedSchool) {
+      errorAlert("Please select a school first");
+      return;
+    }
+
+    if (!name.trim()) {
+      errorAlert("Please enter a department name");
+      return;
+    }
+
     setaddLoading(true);
-    axios
-      .post("/departments/create", {
-        name,
-        description,
-      })
+    axios.post("/departments/create", {
+      name,
+      description,
+      user_Id: selectedSchool._id
+    })
       .then(async (res) => {
-        setaddLoading(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        successAlert("Successfully created");
+        successAlert("Department created successfully");
         setOpen(false);
         setname("");
         setdescription("");
-        setdivisions([res.data.doc, ...divisions]);
+        const updated = [res.data.doc, ...departments];
+        setdepartments(updated);
+        dispatch(setDepartments(updated));
         await axios.post("/activitylog/create", {
-          activity: `department ${res.data.doc?.name} was created`,
+          activity: `New department ${res.data.doc?.name} added to school ${selectedSchool.name}`,
           user: "admin",
         });
       })
       .catch((err) => {
         console.log(err);
-        errorAlert("Failed to add");
+        errorAlert("Failed to add department");
+      })
+      .finally(() => {
         setaddLoading(false);
       });
   };
 
-  const handleEditDivision = () => {
+  const handleEditDepartment = () => {
+    if (!name.trim()) {
+      errorAlert("Please enter a department name");
+      return;
+    }
+
     setaddLoading(true);
-    axios
-      .put(`/departments/update/${editID}`, {
-        name,
-        description,
-      })
+    axios.put(`/departments/update/${editID}`, {
+      name,
+      description,
+      user_Id: selectedSchool?._id
+    })
       .then(async (res) => {
-        setaddLoading(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        successAlert("Successfully edit");
+        successAlert("Department updated successfully");
         setopenEdit(false);
         setname("");
         setdescription("");
-
-        setdivisions(
-          divisions.map((i) => (i._id === editID ? res.data.doc : i))
+        const updated = departments.map((i) => 
+          i._id === editID ? res.data.doc : i
         );
+        setdepartments(updated);
+        dispatch(setDepartments(updated));
         await axios.post("/activitylog/create", {
-          activity: ` ${res.data.doc?.name} department was edited`,
+          activity: `Department ${res.data.doc?.name} was updated in school ${selectedSchool?.name || "unknown"}`,
           user: "admin",
         });
       })
       .catch((err) => {
         console.log(err);
-        errorAlert("Failed to add");
+        errorAlert("Failed to update department");
+      })
+      .finally(() => {
         setaddLoading(false);
       });
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    let newClasses = [];
+    let newDepartments = [];
     if (searchQuery) {
-      newClasses = storedata.filter(
+      newDepartments = storedata.filter(
         (i) =>
           i?.name.toLowerCase().includes(searchQuery?.toLowerCase()) ||
           i?.description.toLowerCase().includes(searchQuery?.toLowerCase())
       );
     }
-    setdivisions(newClasses);
+    setdepartments(newDepartments);
   };
 
   const handleReset = (e) => {
     e.preventDefault();
-    setdivisions(storedata);
+    setdepartments(storedata);
     setsearchQuery("");
+  };
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    setdepartments([]);
+    setname("");
+    setdescription("");
   };
 
   return (
     <div>
+      <div className="mb-4">
+        <GlobalSchoolSelect onSchoolSelect={handleSchoolSelect} />
+        {selectedSchool && (
+          <div className="mt-2">
+            <strong>Selected School:</strong> {selectedSchool.name}
+          </div>
+        )}
+      </div>
+
       <Search
         handleReset={handleReset}
         handleSearch={handleSearch}
@@ -179,14 +244,23 @@ function Division() {
             Add New Departments
           </button>
         </div>
-        <CourseTable
-          handleEdit={handleEdit}
-          handleDelete={handleDelete}
-          data={divisions}
-          noData="There are no departments in the database yet"
-          handleSearch={handleSearch}
-          tableHeader={tableHeadings}
-        />
+        
+        {isLoading ? (
+          <Loading />
+        ) : selectedSchool ? (
+          <CourseTable
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+            data={departments}
+            noData="No departments found for this school"
+            handleSearch={handleSearch}
+            tableHeader={tableHeadings}
+          />
+        ) : (
+          <div className="alert alert-info">
+            Please select a school to view and manage departments.
+          </div>
+        )}
       </div>
 
       <DivisionForm
@@ -197,7 +271,7 @@ function Division() {
         setdescription={setdescription}
         name={name}
         isEdit={true}
-        onSubmit={handleEditDivision}
+        onSubmit={handleEditDepartment}
         setname={setname}
       />
       <DivisionForm
@@ -207,7 +281,7 @@ function Division() {
         description={description}
         setdescription={setdescription}
         name={name}
-        onSubmit={handleAddDivision}
+        onSubmit={handleAddDepartment}
         setname={setname}
       />
     </div>

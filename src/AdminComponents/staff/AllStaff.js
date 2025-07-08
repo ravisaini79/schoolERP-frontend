@@ -6,6 +6,7 @@ import { errorAlert } from "../../utils";
 import Loading from "../../Loading";
 import { pdf } from "../../components/tables/pdf";
 import { Link } from "react-router-dom";
+import GlobalSchoolSelect from "../../GlobalSchoolSelect";
 
 const headCells = [
   { id: "userID", numeric: false, disablePadding: false, label: "Teacher ID" },
@@ -27,11 +28,20 @@ function AllStaff() {
   const [staff, setstaff] = useState([]);
   const [storeData, setstoreData] = useState([]);
   const [loading, setloading] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState(null); // Track selected school
 
   useEffect(() => {
+    if (selectedSchool) {
+      fetchStaffData();
+    } else {
+      setstaff([]); // Clear staff when no school is selected
+    }
+  }, [selectedSchool]);
+
+  const fetchStaffData = () => {
     setloading(true);
     axios
-      .get("/teachers")
+      .get(`/teachers/school/${selectedSchool._id}`) // Assuming your API supports school-based filtering
       .then((res) => {
         setloading(false);
         setstaff(res.data);
@@ -39,10 +49,16 @@ function AllStaff() {
       })
       .catch((err) => {
         setloading(false);
+        errorAlert("Failed to fetch staff data");
       });
-  }, []);
+  };
 
   const generatePDF = () => {
+    if (!staff.length) {
+      errorAlert("No staff data to generate PDF");
+      return;
+    }
+    
     const headers = [
       { key: "userID", label: "UserID" },
       { key: "name", label: "Name" },
@@ -88,6 +104,7 @@ function AllStaff() {
     setname("");
     setuserID("");
   };
+
   const handleSearch = (e) => {
     e.preventDefault();
     let newStaff = [];
@@ -126,37 +143,44 @@ function AllStaff() {
   return (
     <>
       {loading && <Loading />}
-      <div className="content__container mb-5">
-        <Search
-          inputFields={inputFields}
-          handleSearch={handleSearch}
-          handleReset={handleReset}
+      <div className="content__container mb-3">
+        <GlobalSchoolSelect 
+          onSchoolSelect={(school) => setSelectedSchool(school)} 
         />
       </div>
+      
+      {selectedSchool && (
+        <>
+          <div className="content__container mb-5">
+            <Search
+              inputFields={inputFields}
+              handleSearch={handleSearch}
+              handleReset={handleReset}
+            />
+          </div>
 
-      <div className="content__container">
-        <div className="d-flex justify-content-between">
-          <h3>Staff Members List</h3>
-          <Link className="btn btn-outline-info" to="/staff/new">
-            Add New Staff{" "}
-          </Link>
-        </div>
-        <StaffTable
-          route="staff"
-          loading={loading}
-          noData="No staff members yet"
-          students={staff}
-          handleWithdraw={handleWithdraw}
-          handleDelete={handleDelete}
-          headCells={headCells}
-        />
-      </div>
+          <div className="content__container">
+           
+            <StaffTable
+              route="staff"
+              loading={loading}
+              noData="No staff members yet"
+              students={staff}
+              handleWithdraw={handleWithdraw}
+              handleDelete={handleDelete}
+              headCells={headCells}
+            />
+          </div>
 
-      <div className="d-flex justify-content-end">
-        <button onClick={generatePDF} className="btn orange__btn ">
-          Download PDF
-        </button>
-      </div>
+          {staff.length > 0 && (
+            <div className="d-flex justify-content-end">
+              <button onClick={generatePDF} className="btn orange__btn">
+                Download PDF
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </>
   );
 }

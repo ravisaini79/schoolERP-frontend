@@ -11,6 +11,7 @@ import { errorAlert, successAlert } from "../../../utils";
 import { pdf } from "../../../components/tables/pdf";
 import Loading from "../../../Loading";
 import Modal from "./Readmit";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect";
 
 const headCells = [
   { id: "userID", numeric: false, disablePadding: false, label: "StudentID" },
@@ -27,7 +28,7 @@ const headCells = [
   { id: "Gender", disablePadding: false, label: "Gender" },
 ];
 
-function AllStudents() {
+function PastStudents() {
   const [name, setname] = useState("");
   const [id, setid] = useState("");
   const [year, setyear] = useState("");
@@ -40,31 +41,40 @@ function AllStudents() {
   const [classID, setclass] = useState("");
   const [selectedUser, setselectedUser] = useState({});
   const [editloading, seteditloading] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState("");
-  const yearsOptions = years.map((e) => {
-    return {
-      name: e.year,
-      id: e.year,
-    };
-  });
+  const [selectedSchool, setSelectedSchool] = useState(null);
+
+  const yearsOptions = years.map((e) => ({
+    name: e.year,
+    id: e.year,
+  }));
 
   useEffect(() => {
+    if (!selectedSchool) return;
+
     setloading(true);
-    const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
-    
-    if (user && user.userID) {
-      // console.log("✅ Logged in user:", user);
-      setLoggedInUser(user)
-    } else {
-      console.log("❌ No user found in localStorage");
-    }
-    axios.get(`/students/past/${user?._id}`).then((res) => {
-      setloading(false);
-      console.log(res.data);
-      setstudents(res.data);
-      setstoreData(res.data);
-    });
-  }, []);
+    const fetchPastStudents = async () => {
+      try {
+        let url = `/students/past/school/${selectedSchool._id}`;
+        const response = await axios.get(url);
+        setstudents(response.data);
+        setstoreData(response.data);
+      } catch (error) {
+        console.error("Error fetching past students:", error);
+      } finally {
+        setloading(false);
+      }
+    };
+
+    fetchPastStudents();
+  }, [selectedSchool]);
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    // Reset search fields when school changes
+    setname("");
+    setid("");
+    setyear("");
+  };
 
   const generatePDF = () => {
     const headers = [
@@ -76,7 +86,7 @@ function AllStudents() {
       { key: "classID", label: "Class" },
     ];
 
-    pdf({ data: students, headers, filename: "Allstudents" });
+    pdf({ data: students, headers, filename: "PastStudents" });
   };
 
   const handleReset = (e) => {
@@ -114,21 +124,22 @@ function AllStudents() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    let newStudents = [];
+    let newStudents = storeData;
+
     if (year) {
-      newStudents = storeData.filter((i) =>
+      newStudents = newStudents.filter((i) =>
         i.classID.toLowerCase().includes(year.toLowerCase())
       );
     }
     if (name) {
-      newStudents = storeData.filter(
+      newStudents = newStudents.filter(
         (i) =>
           i.name.toLowerCase().includes(name.toLowerCase()) ||
           i.surname.toLowerCase().includes(name.toLowerCase())
       );
     }
     if (id) {
-      newStudents = storeData.filter((i) =>
+      newStudents = newStudents.filter((i) =>
         i.userID.toLowerCase().includes(id.toLowerCase())
       );
     }
@@ -136,7 +147,7 @@ function AllStudents() {
   };
 
   const handleAdmission = (id) => {
-    let selected = students.find((e) => e.userID === id);
+    const selected = students.find((e) => e.userID === id);
     setselectedUser(selected);
     setopen(true);
   };
@@ -151,7 +162,7 @@ function AllStudents() {
           return errorAlert(res.data.error);
         }
         setopen(false);
-        successAlert("changes successfully saved");
+        successAlert("Student successfully readmitted");
         setselectedUser({});
         setclass("");
         setstudents(students.filter((e) => e.userID !== selectedUser?.userID));
@@ -159,51 +170,77 @@ function AllStudents() {
   };
 
   const handleDelete = (i) => {
-    let ans = window.confirm(`Are sure you want to delete user ${i}`);
+    const ans = window.confirm(`Are you sure you want to delete user ${i}?`);
     if (ans) {
       axios.delete(`/user/delete/${i}`).then((res) => {
         if (res.data.error) {
           errorAlert(res.data.error);
         }
-        setstudents(students.filter((e) => e.userID !== id));
+        setstudents(students.filter((e) => e.userID !== i));
       });
     }
   };
 
   return (
     <div>
-      {loading && <Loading />}
-      <Search
-        title="Past Students"
-        handleReset={handleReset}
-        handleSearch={handleSearch}
-        inputFields={inputFields}
-      />
-      <StudentsTable
-        route="students"
-        handleDelete={handleDelete}
-        students={students}
-        noData="No past students yet"
-        noAction={true}
-        handleWithdraw={handleAdmission}
-        headCells={headCells}
-      />
-      <div className="d-flex justify-content-end">
-        <button onClick={generatePDF} className="btn orange__btn ">
-          Download PDF
-        </button>
+      {/* School Selection */}
+      <div className="mb-3">
+        <GlobalSchoolSelect onSchoolSelect={handleSchoolSelect} />
+        {selectedSchool && (
+          <div className="mt-2">
+            <strong>Selected School:</strong> {selectedSchool.name}
+          </div>
+        )}
       </div>
-      <Modal
-        classID={classID}
-        setclass={setclass}
-        classes={classes}
-        open={open}
-        loading={editloading}
-        onSubmit={handleonSubmitAdmission}
-        setOpen={setopen}
-      />
+
+      {!selectedSchool ? (
+        <div className="alert alert-warning">
+          Please select a school to view past students.
+        </div>
+      ) : (
+        <>
+          {loading && <Loading />}
+
+          <Search
+            title="Past Students"
+            handleReset={handleReset}
+            handleSearch={handleSearch}
+            inputFields={inputFields}
+          />
+
+          <StudentsTable
+            route="students"
+            handleDelete={handleDelete}
+            students={students}
+            noData={
+              students.length === 0
+                ? "No past students found for this school."
+                : ""
+            }
+            noAction={true}
+            handleWithdraw={handleAdmission}
+            headCells={headCells}
+          />
+
+          <div className="d-flex justify-content-end">
+            <button onClick={generatePDF} className="btn orange__btn">
+              Download PDF
+            </button>
+          </div>
+
+          <Modal
+            classID={classID}
+            setclass={setclass}
+            classes={classes}
+            open={open}
+            loading={editloading}
+            onSubmit={handleonSubmitAdmission}
+            setOpen={setopen}
+          />
+        </>
+      )}
     </div>
   );
 }
 
-export default AllStudents;
+export default PastStudents;

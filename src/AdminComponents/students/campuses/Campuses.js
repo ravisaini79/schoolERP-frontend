@@ -6,6 +6,8 @@ import axios from "../../../store/axios";
 import { errorAlert, successAlert } from "../../../utils";
 import { useDispatch } from "react-redux";
 import { setCampuses } from "../../../store/slices/schoolSlice";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect";
+import Loading from "../../../Loading";
 
 const tableHeader = [
   { id: "name", name: "Name" },
@@ -23,6 +25,8 @@ function Campuses() {
   const [loading, setloading] = useState(false);
   const [createLoading, setcreateLoading] = useState(false);
   const [campuses, setcampuses] = useState([]);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
 
   const handleDelete = (delID) => {
@@ -33,86 +37,107 @@ function Campuses() {
         setloading(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
         setcampuses(campuses.filter((i) => i._id !== delID));
         dispatch(setCampuses(campuses.filter((i) => i._id !== delID)));
         await axios.post("/activitylog/create", {
-          activity: ` campus ${id} was deleted`,
+          activity: `Campus ${id} was deleted`,
           user: "admin",
         });
       })
       .catch((err) => {
         setloading(false);
-        console.log(err);
-        errorAlert("something when wrong");
+        console.error(err);
+        errorAlert("Something went wrong");
       });
   };
 
   const handleEdit = (editID) => {
     setopenEdit(true);
-    let editCampus = campuses.find((e) => e._id === editID);
-    seteditlocation(editCampus?.location);
-    seteditname(editCampus?.name);
-    setid(editCampus?._id);
+    const editCampus = campuses.find((e) => e._id === editID);
+    seteditlocation(editCampus?.location || "");
+    seteditname(editCampus?.name || "");
+    setid(editCampus?._id || "");
   };
+
   const onEdit = () => {
     setloading(true);
     axios
       .put(`/campuses/update/${id}`, {
         name: editname,
         location: editlocation,
+        schoolId: selectedSchool?._id,
       })
       .then(async (res) => {
-        console.log(res.data);
         setloading(false);
         setopenEdit(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        successAlert("Campus successfully edit");
-
+        successAlert("Campus successfully edited");
         setcampuses(campuses.map((i) => (i._id === id ? res.data.doc : i)));
-        setopenEdit(false);
         dispatch(
           setCampuses(campuses.map((i) => (i._id === id ? res.data.doc : i)))
         );
         await axios.post("/activitylog/create", {
-          activity: ` campus ${name} was edited`,
+          activity: `Campus ${editname} was edited`,
           user: "admin",
         });
       })
       .catch((err) => {
         setloading(false);
-        console.log(err);
-        errorAlert("something when wrong");
+        console.error(err);
+        errorAlert("Something went wrong");
       });
   };
 
   useEffect(() => {
-    axios.get("/campuses").then((res) => {
-      console.log(res.data, "data");
-      setcampuses(res.data);
-    });
-  }, []);
+    setIsLoading(true);
+    const fetchCampuses = async () => {
+      try {
+        let url = "/campuses";
+        if (selectedSchool) {
+          url = `/campuses/school/${selectedSchool._id}`; // Ensure backend supports this
+        }
+        const response = await axios.get(url);
+        setcampuses(response.data);
+        dispatch(setCampuses(response.data));
+      } catch (error) {
+        console.error("Error fetching campuses:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCampuses();
+  }, [selectedSchool, dispatch]);
+
 
   const handleAddCampus = () => {
+    if (!selectedSchool) {
+      errorAlert("Please select a school first");
+      return;
+    }
+  
     setcreateLoading(true);
     axios
-      .post("/campuses/create", { name, location })
+      .post("/campuses/create", {
+        name,
+        location,
+        schoolId: selectedSchool._id, // Will be mapped to user_Id in backend
+      })
       .then(async (res) => {
-        console.log("submited");
-        console.log(res);
         setcreateLoading(false);
         if (res.data.error) {
-          errorAlert("something when wrong");
-          return 0;
+          errorAlert(res.data.error);
+          return;
         }
-        successAlert("successfully created");
+        successAlert("Campus successfully created");
         dispatch(setCampuses([res.data.doc, ...campuses]));
+        setcampuses([res.data.doc, ...campuses]);
         await axios.post("/activitylog/create", {
-          activity: `new campus ${name} was created`,
+          activity: `New campus ${name} was created for school ${selectedSchool.name}`,
           user: "admin",
         });
         setname("");
@@ -120,44 +145,77 @@ function Campuses() {
       })
       .catch((err) => {
         setcreateLoading(false);
-        console.log(err);
-        errorAlert("something when wrong");
+        errorAlert(err.response?.data?.error || "Something went wrong");
       });
+  };
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    setname("");
+    setlocation("");
   };
 
   return (
     <div>
       <h3>Campuses</h3>
-      <div className="row">
-        <div className="col-sm-12 mb-5">
-          <AddCampus
-            loading={createLoading}
-            name={name}
-            location={location}
-            setname={setname}
-            setlocation={setlocation}
-            onSubmit={handleAddCampus}
-          />
-        </div>
-        <div className="col-sm-12">
-          <ListCampus
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
-            data={campuses}
-            tableHeader={tableHeader}
-          />
-        </div>
+
+      {/* School Selection */}
+      <div className="mb-4">
+        <GlobalSchoolSelect onSchoolSelect={handleSchoolSelect} />
+        {selectedSchool ? (
+          <div className="mt-2">
+            <strong>Selected School:</strong> {selectedSchool.name}
+          </div>
+        ) : (
+          <div className="alert alert-warning mt-2">
+        Please select a school to view and manage campuses.
+          </div>
+        )}
       </div>
-      <EditCampus
-        open={openEdit}
-        loading={loading}
-        setopen={setopenEdit}
-        name={editname}
-        location={editlocation}
-        setname={seteditname}
-        setlocation={seteditlocation}
-        onSubmit={onEdit}
-      />
+
+      {isLoading ? (
+  <Loading />
+) : selectedSchool ? (
+  <>
+    <div className="row">
+      <div className="col-sm-12 mb-5">
+        <AddCampus
+          loading={createLoading}
+          name={name}
+          location={location}
+          setname={setname}
+          setlocation={setlocation}
+          onSubmit={handleAddCampus}
+          disabled={false}  // can enable since school is selected
+        />
+      </div>
+      <div className="col-sm-12">
+        <ListCampus
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+          data={campuses}
+          tableHeader={tableHeader}
+          noData="No campuses found for this school"
+        />
+      </div>
+    </div>
+
+    <EditCampus
+      open={openEdit}
+      loading={loading}
+      setopen={setopenEdit}
+      name={editname}
+      location={editlocation}
+      setname={seteditname}
+      setlocation={seteditlocation}
+      onSubmit={onEdit}
+    />
+  </>
+) : (
+  <>
+  </>
+)}
+
     </div>
   );
 }

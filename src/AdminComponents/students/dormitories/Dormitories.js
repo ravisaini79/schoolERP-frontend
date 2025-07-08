@@ -6,6 +6,8 @@ import Edit from "./DormitoriesModal";
 import { errorAlert, successAlert } from "../../../utils";
 import { useDispatch } from "react-redux";
 import { setDormitories } from "../../../store/slices/schoolSlice";
+import GlobalSchoolSelect from "../../../GlobalSchoolSelect";
+import Loading from "../../../Loading";
 
 const tableHeader = [
   { id: "_id", name: "ID" },
@@ -19,17 +21,37 @@ function Dormitories() {
   const [name, setname] = useState("");
   const [editname, seteditname] = useState("");
   const [loading, setloading] = useState(false);
-  const [editID, seteditID] = useState();
+  const [editID, seteditID] = useState("");
   const [createLoading, setcreateLoading] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    axios.get("/dormitories").then((res) => {
-      setdormitories(res?.data);
-    });
-  }, []);
+    if (!selectedSchool) return;
+
+    setIsLoading(true);
+    const fetchDormitories = async () => {
+      try {
+        const url = `/dormitories/school/${selectedSchool._id}`;
+        const response = await axios.get(url);
+        setdormitories(response.data);
+        dispatch(setDormitories(response.data));
+      } catch (error) {
+        console.error("Error fetching dormitories:", error);
+        errorAlert("Failed to fetch dormitories");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDormitories();
+  }, [selectedSchool, dispatch]);
 
   const handleDelete = (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this dormitory?");
+    if (!confirmDelete) return;
+
     setloading(true);
     axios
       .delete(`/dormitories/delete/${id}`)
@@ -37,41 +59,50 @@ function Dormitories() {
         setloading(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        setdormitories(dormitories.filter((i) => i._id !== id));
-        dispatch(setDormitories(dormitories.filter((i) => i._id !== id)));
+        const updated = dormitories.filter((i) => i._id !== id);
+        setdormitories(updated);
+        dispatch(setDormitories(updated));
         await axios.post("/activitylog/create", {
-          activity: `dormitory ${id} was deleted`,
+          activity: `Dormitory ${id} was deleted from school ${selectedSchool?.name || "unknown"}`,
           user: "admin",
         });
+        successAlert("Dormitory deleted successfully");
       })
       .catch((err) => {
         setloading(false);
         console.log(err);
-        errorAlert("something when wrong");
+        errorAlert("Something went wrong");
       });
   };
 
   const handleCreate = (e) => {
     e.preventDefault();
+
+    if (!selectedSchool) {
+      errorAlert("Please select a school first");
+      return;
+    }
+
     setcreateLoading(true);
     axios
-      .post("/dormitories/create", { name })
+      .post("/dormitories/create", {
+        name,
+        user_Id: selectedSchool._id,
+      })
       .then(async (res) => {
-        console.log("submited");
-        console.log(res);
         setcreateLoading(false);
         if (res.data.error) {
-          errorAlert("something when wrong");
-          return 0;
+          errorAlert(res.data.error);
+          return;
         }
-        successAlert("successfully created");
-        console.log(res.data.doc);
-        setdormitories([res.data.doc, ...dormitories]);
-        dispatch(setDormitories([res.data.doc, ...dormitories]));
+        successAlert("Dormitory created successfully");
+        const updated = [res.data.doc, ...dormitories];
+        setdormitories(updated);
+        dispatch(setDormitories(updated));
         await axios.post("/activitylog/create", {
-          activity: `dormitory ${name} was added`,
+          activity: `New dormitory ${name} added to school ${selectedSchool.name}`,
           user: "admin",
         });
         setname("");
@@ -79,78 +110,105 @@ function Dormitories() {
       .catch((err) => {
         setcreateLoading(false);
         console.log(err);
-        errorAlert("something when wrong");
+        errorAlert("Something went wrong");
       });
   };
 
   const handleEdit = (id) => {
     setopen(true);
-    let editdormitory = dormitories.find((e) => e._id === id);
-    seteditname(editdormitory?.name);
-    seteditID(editdormitory?._id);
+    const editDormitory = dormitories.find((e) => e._id === id);
+    seteditname(editDormitory?.name);
+    seteditID(editDormitory?._id);
   };
 
   const onEdit = () => {
     setloading(true);
     axios
-      .put(`/dormitories/update/${editID}`, { name: editname })
+      .put(`/dormitories/update/${editID}`, {
+        name: editname,
+        user_Id: selectedSchool?._id,
+      })
       .then(async (res) => {
         setloading(false);
         if (res.data.error) {
           errorAlert(res.data.error);
-          return 0;
+          return;
         }
-        // let oldArray = dormitories.filter((dorm) => dorm._id !== editID);
-        setdormitories(
-          dormitories.map((i) => (i._id === editID ? res.data.docs : i))
-        );
-        dispatch(
-          setDormitories(
-            dormitories.map((i) => (i._id === editID ? res.data.docs : i))
-          )
-        );
+        const updated = dormitories.map((i) => (i._id === editID ? res.data.docs : i));
+        setdormitories(updated);
+        dispatch(setDormitories(updated));
         await axios.post("/activitylog/create", {
-          activity: `dormitory ${name} was edited`,
+          activity: `Dormitory ${editname} was updated in school ${selectedSchool?.name || "unknown"}`,
           user: "admin",
         });
+        successAlert("Dormitory updated successfully");
         seteditname("");
         setopen(false);
       })
       .catch((err) => {
         setloading(false);
-        errorAlert("something when wrong");
+        errorAlert("Something went wrong");
       });
+  };
+
+  const handleSchoolSelect = (school) => {
+    setSelectedSchool(school);
+    setdormitories([]);
+    setname("");
   };
 
   return (
     <div className="dormitories__page">
       <h3>Dormitories</h3>
-      <div className="row">
-        <div className="col-sm-12 mb-5">
-          <AddDormitories
-            name={name}
-            setname={setname}
-            loading={createLoading}
-            onSubmit={handleCreate}
-          />
-        </div>
-        <div className="col-sm-12 ">
-          <DormitoryList
-            handleDelete={handleDelete}
-            handleEdit={handleEdit}
-            data={dormitories}
-            tableHeader={tableHeader}
-          />
-        </div>
+
+      <div className="mb-4">
+        <GlobalSchoolSelect onSchoolSelect={handleSchoolSelect} />
+        {selectedSchool && (
+          <div className="mt-2">
+            <strong>Selected School:</strong> {selectedSchool.name}
+          </div>
+        )}
       </div>
-      <Edit
-        open={open}
-        setopen={setopen}
-        name={editname}
-        setname={seteditname}
-        onSubmit={onEdit}
-        loading={loading}
-      />
+
+      {isLoading ? (
+        <Loading />
+      ) : selectedSchool ? (
+        <>
+          <div className="row">
+            <div className="col-sm-12 mb-5">
+              <AddDormitories
+                name={name}
+                setname={setname}
+                loading={createLoading}
+                onSubmit={handleCreate}
+                disabled={false}
+              />
+            </div>
+            <div className="col-sm-12">
+              <DormitoryList
+                handleDelete={handleDelete}
+                handleEdit={handleEdit}
+                data={dormitories}
+                tableHeader={tableHeader}
+                noData="No dormitories found for this school"
+              />
+            </div>
+          </div>
+
+          <Edit
+            open={open}
+            setopen={setopen}
+            name={editname}
+            setname={seteditname}
+            onSubmit={onEdit}
+            loading={loading}
+          />
+        </>
+      ) : (
+        <div className="alert alert-info">
+          Please select a school to view and manage dormitories.
+        </div>
+      )}
     </div>
   );
 }

@@ -164,6 +164,11 @@ const _nav = [
         name: "Subjects Group",
         to: "/academics/subjectsgroup",
       },
+         {
+        _tag: "CSidebarNavItem",
+        name: "Assign Subject to Teachers",
+        to: "/academics/assignsubjectstoteachers",
+      },
       {
         _tag: "CSidebarNavItem",
         name: "Assign Subject to Students",

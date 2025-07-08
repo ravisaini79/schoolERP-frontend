@@ -12,7 +12,7 @@ const tableHeader = [
   { id: "name", name: "Section" },
   { id: "createdAt", name: "Added" },
 ];
-
+ const user = JSON.parse(localStorage.getItem("LoggerInUser") || "{}");
 function Sections() {
   const [openEdit, setopenEdit] = useState(false);
   const [name, setname] = useState("");
@@ -83,7 +83,7 @@ function Sections() {
 
   useEffect(() => {
     setdataloading(true);
-    axios.get("/sections").then((res) => {
+    axios.get(`/sections/${user._id}`).then((res) => {
       setdataloading(false);
       console.log(res.data);
       setsections(res.data);
@@ -94,7 +94,7 @@ function Sections() {
     e.preventDefault();
     setcreateLoading(true);
     axios
-      .post("/sections/create", { name })
+      .post("/sections/create", { name, user_Id: user._id  })
       .then(async (res) => {
         console.log("submited");
         console.log(res);
@@ -109,6 +109,7 @@ function Sections() {
         await axios.post("/activitylog/create", {
           activity: `section ${name} was added`,
           user: "admin",
+         user_Id: user._id 
         });
         setname("");
       })

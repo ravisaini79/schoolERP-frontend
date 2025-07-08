@@ -6,6 +6,11 @@ const Dashboard = React.lazy(() =>
 const Settings = React.lazy(() =>
   import("../../AdminComponents/settings/SettingsPage")
 );
+
+const AssignsubtoTeachers = React.lazy(() =>
+  import("../../AdminComponents/academics/AssignSubjectstoTeachers/AssignSubjects")
+);
+
 const Profile = React.lazy(() =>
   import("../../AdminComponents/Profile/Profile")
 );
@@ -483,6 +488,12 @@ const routes = [
     name: "Subjects Group",
     exact: true,
     component: SubjectsGroup,
+  },
+   {
+    path: "/academics/assignsubjectstoteachers",
+    name: "Assign Subject to Teachers",
+    exact: true,
+    component: AssignsubtoTeachers,
   },
   {
     path: "/academics/assignsubjects",
